@@ -8,7 +8,7 @@ export default {
 };
 
 async function page(env) {
-  const list = await env.BUCKET.list();
+  const list = await env.Michio.list();
 
   const items = list.objects
     .filter(o => /\.(png|jpe?g|webp|gif)$/i.test(o.key))
