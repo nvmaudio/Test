@@ -5,7 +5,9 @@ export default {
     }
 
     return new Response(html(), {
-      headers: { "Content-Type": "text/html; charset=utf-8" }
+      headers: {
+        "Content-Type": "text/html; charset=utf-8"
+      }
     });
   }
 };
@@ -18,7 +20,6 @@ async function upload(req, env) {
     return new Response("No file", { status: 400 });
   }
 
-  // Làm sạch tên file
   const safeName = file.name
     .toLowerCase()
     .replace(/\s+/g, "-")
@@ -31,19 +32,16 @@ async function upload(req, env) {
     await file.arrayBuffer(),
     {
       httpMetadata: {
-        contentType: file.type
+        contentType: file.type || "application/octet-stream"
       }
     }
   );
 
-  // Trả link ảnh PUBLIC
-  const url = `https://img.nvmaudio.id.vn/${key}`;
-
   return new Response(
-    JSON.stringify({ url }),
-    {
-      headers: { "Content-Type": "application/json" }
-    }
+    JSON.stringify({
+      url: `https://img.nvmaudio.id.vn/${key}`
+    }),
+    { headers: { "Content-Type": "application/json" } }
   );
 }
 
@@ -54,39 +52,47 @@ function html() {
 <head>
 <meta charset="utf-8">
 <title>Upload R2</title>
-<style>
-body{font-family:sans-serif;padding:40px}
-img{max-width:300px;margin-top:20px;border:1px solid #ddd}
-</style>
 </head>
 <body>
 
 <h2>Upload ảnh</h2>
 
 <input type="file" id="file">
-<button onclick="upload()">Upload</button>
+<button id="btn">Upload</button>
 
-<div id="result"></div>
+<pre id="log"></pre>
+<img id="img" style="max-width:300px;display:none">
 
 <script>
-async function upload() {
+const WORKER_URL = location.origin; // ✅ đúng domain Worker
+
+document.getElementById("btn").onclick = async () => {
   const f = document.getElementById("file").files[0];
   if (!f) return alert("Chọn file");
 
   const fd = new FormData();
   fd.append("file", f);
 
-  const res = await fetch("/", {
-    method: "POST",
-    body: fd
-  });
+  document.getElementById("log").textContent = "Uploading...";
 
-  const data = await res.json();
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      body: fd
+    });
 
-  document.getElementById("result").innerHTML =
-    '<p>' + data.url + '</p>' +
-    '<img src="' + data.url + '">';
-}
+    const data = await res.json();
+
+    document.getElementById("log").textContent = data.url;
+
+    const img = document.getElementById("img");
+    img.src = data.url;
+    img.style.display = "block";
+  } catch (e) {
+    document.getElementById("log").textContent =
+      "Upload error: " + e;
+  }
+};
 </script>
 
 </body>
