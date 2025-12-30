@@ -1,83 +1,79 @@
 export default {
   async fetch(req, env) {
-    if (req.method === "POST") {
-      return handleUpload(req, env);
-    }
-
-    return new Response(html(), {
-      headers: { "Content-Type": "text/html; charset=utf-8" }
-    });
+    return new Response(
+      await page(env),
+      { headers: { "Content-Type": "text/html; charset=utf-8" } }
+    );
   }
 };
 
-async function handleUpload(req, env) {
-  const form = await req.formData();
-  const file = form.get("file");
+async function page(env) {
+  const list = await env.BUCKET.list();
 
-  if (!(file instanceof File)) {
-    return new Response("No file", { status: 400 });
-  }
+  const items = list.objects
+    .filter(o => /\.(png|jpe?g|webp|gif)$/i.test(o.key))
+    .map(o => {
+      const url = `https://img.nvmaudio.id.vn/${o.key}`;
+      return `
+        <a href="${url}" target="_blank" class="item">
+          <img src="${url}" loading="lazy">
+          <span>${o.key}</span>
+        </a>
+      `;
+    })
+    .join("");
 
-  const safeName = file.name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9.\-_]/g, "");
-
-  const key = `${Date.now()}-${safeName}`;
-
-  await env.BUCKET.put(
-    key,
-    await file.arrayBuffer(),
-    {
-      httpMetadata: {
-        contentType: file.type || "application/octet-stream"
-      }
-    }
-  );
-
-  // ❗ trả về HTML luôn (KHÔNG JSON)
-  return new Response(`
-    <script>
-      location.href='/?img=${encodeURIComponent(key)}'
-    </script>
-  `, {
-    headers: { "Content-Type": "text/html" }
-  });
-}
-
-function html() {
   return `
 <!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>Upload R2</title>
+<title>Ảnh trong R2</title>
 <style>
-body{font-family:sans-serif;padding:30px}
-img{max-width:300px;margin-top:20px;border:1px solid #ddd}
+body {
+  font-family: system-ui, sans-serif;
+  padding: 20px;
+  background: #f6f7f9;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+}
+.item {
+  display: block;
+  text-decoration: none;
+  color: #333;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  transition: transform .15s;
+}
+.item:hover {
+  transform: translateY(-3px);
+}
+.item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.item span {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  word-break: break-all;
+}
 </style>
 </head>
 <body>
 
-<h2>Upload ảnh</h2>
+<h2>📂 Ảnh trong R2</h2>
 
-<form method="post" enctype="multipart/form-data">
-  <input type="file" name="file" required>
-  <button type="submit">Upload</button>
-</form>
-
-<div id="preview"></div>
-
-<script>
-const p = new URLSearchParams(location.search);
-const img = p.get("img");
-
-if (img) {
-  document.getElementById("preview").innerHTML =
-    '<p>https://img.nvmaudio.id.vn/' + img + '</p>' +
-    '<img src="https://img.nvmaudio.id.vn/' + img + '">';
-}
-</script>
+<div class="grid">
+  ${items || "<p>Chưa có ảnh</p>"}
+</div>
 
 </body>
 </html>
