@@ -33,7 +33,7 @@ async function upload(req, env) {
 
   const key = `${Date.now()}-${safeName}`;
 
-  await env.BUCKET.put(
+  await env.Michio.put(
     key,
     await file.arrayBuffer(),
     {
