@@ -1,7 +1,7 @@
-name = "my-ws-worker"
+name = "test"
 main = "worker.js"
 compatibility_date = "2024-11-01"
 
 [[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "michio"
+binding = "Michio"     # PHẢI TRÙNG với Binding Name trong dashboard
+bucket_name = "michio" # TÊN bucket thật
